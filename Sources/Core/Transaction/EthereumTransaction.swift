@@ -63,7 +63,6 @@ public struct EthereumTransaction: Codable {
         self.data = data
     }
     
-    
     // MARK: - Convenient functions
     
     /**
@@ -73,7 +72,12 @@ public struct EthereumTransaction: Codable {
      * - parameter chainId: chainId as described in EIP155.
      */
     public func sign(with privateKey: EthereumPrivateKey, chainId: EthereumQuantity) throws -> EthereumSignedTransaction {
-        // These values are required for signing
+        let rawRlp = try rawRLP(chainID: chainId)
+        let signature = try privateKey.sign(message: rawRlp)
+        return try signedTransaction(signature: signature, chainID: chainId)
+    }
+    
+    public func rawRLP(chainID: EthereumQuantity) throws -> Bytes {
         guard let nonce = nonce, let gasPrice = gasPrice, let gasLimit = gas, let value = value else {
             throw EthereumTransactionError.transactionInvalid
         }
@@ -84,20 +88,28 @@ public struct EthereumTransaction: Codable {
             to: to,
             value: value,
             data: data,
-            v: chainId,
+            v: chainID,
             r: 0,
             s: 0
         )
-        let rawRlp = try RLPEncoder().encode(rlp)
-        let signature = try privateKey.sign(message: rawRlp)
+        return try RLPEncoder().encode(rlp)
+    }
+    
+    public func signedTransaction(
+        signature: (v: UInt, r: Bytes, s: Bytes),
+        chainID: EthereumQuantity
+    ) throws -> EthereumSignedTransaction {
+        guard let nonce = nonce, let gasPrice = gasPrice, let gasLimit = gas, let value = value else {
+            throw EthereumTransactionError.transactionInvalid
+        }
         
         let v: BigUInt
-        if chainId.quantity == 0 {
+        if chainID.quantity == 0 {
             v = BigUInt(signature.v) + BigUInt(27)
         } else {
             let sigV = BigUInt(signature.v)
             let big27 = BigUInt(27)
-            let chainIdCalc = (chainId.quantity * BigUInt(2) + BigUInt(8))
+            let chainIdCalc = (chainID.quantity * BigUInt(2) + BigUInt(8))
             v = sigV + big27 + chainIdCalc
         }
         
@@ -114,7 +126,7 @@ public struct EthereumTransaction: Codable {
             v: EthereumQuantity(quantity: v),
             r: EthereumQuantity(quantity: r),
             s: EthereumQuantity(quantity: s),
-            chainId: chainId
+            chainId: chainID
         )
     }
 }
