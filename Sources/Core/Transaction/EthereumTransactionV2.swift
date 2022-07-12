@@ -82,6 +82,12 @@ public struct EthereumTransactionV2: Codable {
      * - parameter chainId: chainId as described in EIP155.
      */
     public func sign(with privateKey: EthereumPrivateKey, chainId: EthereumQuantity) throws -> EthereumSignedTransactionV2 {
+        let rawRLP = try rawRLP(chainID: chainId)
+        let signature = try privateKey.sign(message: rawRLP)
+        return try signedTransaction(signature: signature, chainID: chainId)
+    }
+    
+    public func rawRLP(chainID: EthereumQuantity) throws -> Bytes {
         // These values are required for signing
         guard
             let nonce = nonce,
@@ -94,7 +100,7 @@ public struct EthereumTransactionV2: Codable {
         }
 
         let rlp = RLPItem(
-            chainId: chainId,
+            chainId: chainID,
             nonce: nonce,
             maxPriorityFeePerGas: maxPriorityFeePerGas,
             maxFeePerGas: maxFeePerGas,
@@ -103,10 +109,26 @@ public struct EthereumTransactionV2: Codable {
             value: value,
             data: data
         )
-        var payload = try RLPEncoder().encode(rlp)
-        payload.insert(0x02, at: 0) // TransactionType
-        let signature = try privateKey.sign(message: payload)
-
+        var rawRLP = try RLPEncoder().encode(rlp)
+        rawRLP.insert(0x02, at: 0) // TransactionType
+        return rawRLP
+    }
+    
+    public func signedTransaction(
+        signature: (v: UInt, r: Bytes, s: Bytes),
+        chainID: EthereumQuantity
+    ) throws -> EthereumSignedTransactionV2 {
+        // These values are required for signing
+        guard
+            let nonce = nonce,
+            let maxPriorityFeePerGas = maxPriorityFeePerGas,
+            let maxFeePerGas = maxFeePerGas,
+            let gasLimit = gas,
+            let value = value
+        else {
+            throw EthereumTransactionError.transactionInvalid
+        }
+        
         let v = BigUInt(signature.v)
         let r = BigUInt(signature.r)
         let s = BigUInt(signature.s)
@@ -122,7 +144,7 @@ public struct EthereumTransactionV2: Codable {
             v: EthereumQuantity(quantity: v),
             r: EthereumQuantity(quantity: r),
             s: EthereumQuantity(quantity: s),
-            chainId: chainId
+            chainId: chainID
         )
     }
 }
