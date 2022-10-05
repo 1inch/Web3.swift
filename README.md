@@ -1,7 +1,3 @@
-<a href="https://github.com/Boilertalk/Web3.swift">
-  <img src="https://bitcoinboomer-atm-app-releases.ams3.digitaloceanspaces.com/boilertalk.svg" width="100%" height="256">
-</a>
-
 <p align="center">
   <a href="https://travis-ci.org/Boilertalk/Web3.swift">
     <img src="http://img.shields.io/travis/Boilertalk/Web3.swift.svg?style=flat" alt="CI Status">
