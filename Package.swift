@@ -1,12 +1,12 @@
-// swift-tools-version:5.6
+// swift-tools-version:5.8
 
 import PackageDescription
 
 let package = Package(
     name: "Web3",
     platforms: [
-        .macOS(.v10_15),
-        .iOS(.v13)
+        .macOS(.v12),
+        .iOS(.v15),
     ],
     products: [
         .library(name: "Web3", targets: ["Web3"]),
